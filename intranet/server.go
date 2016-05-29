@@ -22,6 +22,7 @@ var (
 	invalidParams              = []byte("invalid params")
 	requestMethodsRestrictions = []byte("Only GET and POST request is allowed")
 	fileDeleted                = []byte("deleted")
+	noFileName                 = []byte("no file-name header")
 )
 
 func startHTTPServer() {
@@ -57,7 +58,8 @@ func httpHandler(rw http.ResponseWriter, request *http.Request) {
 }
 
 func getHandler(_store, fileID string, rw http.ResponseWriter) {
-	content, err := store.Get(_store, fileID)
+	log.Debugf("New GET request. Store: %s, fileID: %s", _store, fileID)
+	fileName, content, err := store.Get(_store, fileID)
 	if err != nil {
 		if err == store.ErrNotFound {
 			rw.WriteHeader(http.StatusNotFound)
@@ -68,50 +70,36 @@ func getHandler(_store, fileID string, rw http.ResponseWriter) {
 		}
 		return
 	}
+	rw.Header().Set("file-name", fileName)
 	rw.WriteHeader(http.StatusOK)
+	log.Debugf("Send %s for GET request. Store: %s, fileID: %s", fileName, _store, fileID)
 	rw.Write(content)
 }
 
 func postHandler(_store, fileID string, rw http.ResponseWriter, request *http.Request) {
+	log.Debugf("New POST request. Store: %s, fileID: %s", _store, fileID)
 	if store.Exists(_store, fileID) {
 		rw.WriteHeader(http.StatusBadRequest)
 		rw.Write(fileExists)
 		return
 	}
-	err := request.ParseMultipartForm(maxFileSize)
-	if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		rw.Write([]byte(err.Error()))
-		return
-	}
-
-	_, fileHeader, err := request.FormFile("file")
-	if err != nil {
+	fileName := request.Header.Get("file-name")
+	if fileName == "" {
 		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write(noFileInForm)
+		rw.Write(noFileName)
 		return
 	}
 
-	fileName := fileHeader.Filename
-	uploadedFile, err := fileHeader.Open()
+	buf := bytes.NewBuffer(nil)
+	n, err := buf.ReadFrom(request.Body)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(err.Error()))
-		return
-	}
-	defer uploadedFile.Close()
-
-	buf := new(bytes.Buffer)
-
-	n, err := buf.ReadFrom(uploadedFile)
-	if err != nil {
-		rw.WriteHeader(http.StatusInternalServerError)
-		rw.Write([]byte(err.Error()))
-		return
 	}
 	if n == 0 {
 		log.WithField("filename", fileName).Warn("Uploaded file is empty")
 	}
+
 	err = store.File(_store, fileID, fileName, buf.Bytes())
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -122,6 +110,7 @@ func postHandler(_store, fileID string, rw http.ResponseWriter, request *http.Re
 }
 
 func deleteHandler(_store, fileID string, rw http.ResponseWriter) {
+	log.Debugf("New DELETE request. Store: %s, fileID: %s", _store, fileID)
 	err := store.Del(_store, fileID)
 	if err != nil {
 		if err == store.ErrNotFound {

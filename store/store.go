@@ -80,18 +80,18 @@ func File(_store, fileID, fileName string, _file []byte) error {
 	return saveFile(path, _file)
 }
 
-// Get returns file from appFs or error
-func Get(store, id string) ([]byte, error) {
+// Get returns fileName and content from appFs or error
+func Get(store, id string) (string, []byte, error) {
 	path, err := getFilePath(store, "", id)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	content, err := afero.ReadFile(appFs, path)
 	if err != nil && os.IsNotExist(err) {
 		err = ErrNotFound
 	}
-	return content, err
+	return filepath.Base(path), content, err
 }
 
 func saveFile(path string, content []byte) error {
