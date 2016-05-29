@@ -1,24 +1,23 @@
 package store
 
 import (
-	"bytes"
 	"errors"
-	"mime/multipart"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/afero"
 )
 
 var (
-	AppFs afero.Fs
+	appFs   afero.Fs
+	rootDir = "files"
 	// ErrAccessDenied uses when access denied
 	ErrAccessDenied = errors.New("Access denied!")
 	ErrServerError  = errors.New("Server error")
 	ErrFileExists   = errors.New("File exists")
+	ErrNotFound     = errors.New("File not found")
 	tmpFiles        = map[string]*tmpFile{}
 	tmpFilesMutex   = &sync.Mutex{}
 	tmpFileTTL      = time.Hour * 2
@@ -33,81 +32,101 @@ type tmpFile struct {
 }
 
 func init() {
-	AppFs = afero.NewOsFs()
-
+	appFs = afero.NewOsFs()
 }
 
-func StoreFile(_store string, _file *multipart.FileHeader) error {
-	fileID := "1"
-	filePath := getFilePath(_store, fileID)
-	if filePath == "" {
-		return ErrServerError
-	}
-
-	uploadedFile, err := _file.Open()
+// Del removes file from fs
+func Del(store, id string) error {
+	path, err := getFilePath(store, "", id)
 	if err != nil {
 		return err
 	}
-	defer uploadedFile.Close()
 
-	_, err = os.Stat(filePath)
-	if err == nil || os.IsExist(err) {
-		return ErrFileExists
+	err = appFs.Remove(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = ErrNotFound
+		}
+	} else {
+		appFs.Remove(filepath.Dir(path))
 	}
+	return err
+}
 
-	buf := new(bytes.Buffer)
+// Exists returns true if file already stored
+func Exists(store, id string) bool {
+	filePath, err := getFilePath(store, "", id)
+	if err != nil {
+		return false
+	}
+	_, err = appFs.Stat(filePath)
+	if err != nil {
+		// may be server doesn't have permissions to read
+		if os.IsExist(err) {
+			return true
+		}
+		return false
+	}
+	return true
+}
 
-	n, err := buf.ReadFrom(uploadedFile)
+// File stores file to fs
+func File(_store, fileID, fileName string, _file []byte) error {
+	path, err := getFilePath(_store, fileName, fileID)
 	if err != nil {
 		return err
 	}
-	if n == 0 {
-		log.WithField("filename", _file.Filename).Warn("Uploaded file is empty")
+
+	return saveFile(path, _file)
+}
+
+// Get returns file from appFs or error
+func Get(store, id string) ([]byte, error) {
+	path, err := getFilePath(store, "", id)
+	if err != nil {
+		return nil, err
 	}
-	err = os.MkdirAll(filepath.Dir(filePath), os.ModePerm)
+
+	content, err := afero.ReadFile(appFs, path)
+	if err != nil && os.IsNotExist(err) {
+		err = ErrNotFound
+	}
+	return content, err
+}
+
+func saveFile(path string, content []byte) error {
+	err := appFs.MkdirAll(filepath.Dir(path), 0744)
 	if err != nil {
 		return err
 	}
-	file, err := os.Create(filePath)
+	file, err := appFs.Create(path)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	nn, err := file.Write(buf.Bytes())
+	_, err = file.Write(content)
+	return err
+}
+
+func getFilePath(store, name, id string) (string, error) {
+	if len(id) < 3 {
+		return "", ErrNotFound
+	}
+	fileDir := rootDir + "/" + store + "/" + id[:2] + "/" + id
+	if name != "" {
+		return fileDir + "/" + name, nil
+	}
+	files, err := afero.ReadDir(appFs, fileDir)
 	if err != nil {
-		return err
+		if os.IsNotExist(err) {
+			err = ErrNotFound
+		}
+		return "", err
 	}
-	if nn == 0 {
-		return errors.New("Can't write file")
+	if len(files) == 0 {
+		return "", ErrNotFound
 	}
-	return nil
-}
 
-func getFilePath(_ string, _ string) string {
-	return ""
-}
-
-func fileTerminator() {
-	ch := time.Tick(time.Minute)
-	for {
-		<-ch
-		// now := time.Now()
-		// tmpFilesMutex.Lock()
-		// for i, tfile := range tmpFiles {
-		// 	if now.Sub(*tfile.UploadedAt) > tmpFileTTL {
-		// 		filePath := getFilePath(tfile.Store, tfile.Id)
-		// 		err := os.Remove(filePath)
-		// 		if err != nil {
-		// 			if os.IsExist(err) {
-		// 				logger.Error("Can't remove temp file", err.Error())
-		// 				continue
-		// 			}
-		// 		}
-		// 		delete(tmpFiles, i)
-		// 		// db.Delete(config.TempFileStoreBucket, tfile.Id)
-		// 	}
-		// }
-		// tmpFilesMutex.Unlock()
-	}
+	return fileDir + "/" + files[0].Name(), nil
 }

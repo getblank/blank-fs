@@ -12,6 +12,7 @@ import (
 var (
 	srAddress string
 	tqAddress string
+	httpPort string
 	srClient  *wango.Wango
 	srLocker  sync.RWMutex
 	tqClient  *wango.Wango
@@ -19,10 +20,12 @@ var (
 )
 
 // Init is the main entry point for the intranet package
-func Init(addr string) {
+func Init(addr, port string) {
 	srAddress = addr
+	httpPort = port
 	go connectToTaskQ()
-	connectToSr()
+	go connectToSr()
+	startHTTPServer()
 }
 
 type service struct {
@@ -37,7 +40,7 @@ func connectedToSR(w *wango.Wango) {
 	srClient = w
 	srLocker.Unlock()
 
-	srClient.Call("register", map[string]interface{}{"type": "fileStore", "port": "8082"})
+	srClient.Call("register", map[string]interface{}{"type": "fileStore", "port": httpPort})
 }
 
 func connectToSr() {
