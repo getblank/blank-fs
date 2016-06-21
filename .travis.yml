@@ -1,0 +1,14 @@
+language: go
+os:
+  - linux
+  - osx
+go:
+  - 1.6.2
+install:
+  - go get github.com/Sirupsen/logrus
+  - go get github.com/getblank/wango
+  - go get github.com/spf13/cobra
+script: go get -t -v ./...
+after_success:
+  - curl --ftp-create-dirs --data-binary -k -T $HOME/gopath/bin/blank-fs -u $FTP_USER:$FTP_PASSWORD ftp://releases.getblank.net/releases/blank-fs/$(date +%Y-%m-%d_%H:%M)-$TRAVIS_OS_NAME/blank-fs
+  - curl --ftp-create-dirs --data-binary -k -T $HOME/gopath/bin/blank-fs -u $FTP_USER:$FTP_PASSWORD ftp://releases.getblank.net/releases/blank-fs/$TRAVIS_OS_NAME/blank-fs
