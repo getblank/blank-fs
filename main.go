@@ -6,7 +6,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/getblank/blank-filestore/intranet"
+	"github.com/getblank/blank-fs/intranet"
 )
 
 func main() {
@@ -14,11 +14,11 @@ func main() {
 	var srAddress *string
 	var port *string
 	rootCmd := &cobra.Command{
-		Use:   "blank-filestore",
+		Use:   "blank-fs",
 		Short: "File storage microservice for Blank platform",
 		Long:  "The next generation of web applications. This is the file storage subsystem.",
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Info("blank-filestore started")
+			log.Info("blank-fs started")
 			intranet.Init(*srAddress, *port)
 		},
 	}

@@ -7,7 +7,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 
-	"github.com/getblank/blank-filestore/store"
+	"github.com/getblank/blank-fs/store"
 )
 
 const (
