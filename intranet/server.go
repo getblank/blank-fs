@@ -95,6 +95,7 @@ func postHandler(_store, fileID string, rw http.ResponseWriter, request *http.Re
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(err.Error()))
+		return
 	}
 	if n == 0 {
 		log.WithField("filename", fileName).Warn("Uploaded file is empty")
