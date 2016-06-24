@@ -13,7 +13,7 @@ import (
 var (
 	buildTime string
 	gitHash   string
-	version   = "0.0.6"
+	version   = "0.0.7"
 )
 
 func main() {
@@ -48,7 +48,5 @@ func main() {
 }
 
 func printVersion() {
-	fmt.Printf("Build time:  		%s\n", buildTime)
-	fmt.Printf("Commit hash: 		%s\n", gitHash)
-	fmt.Printf("Version:     		%s\n", version)
+	fmt.Printf("blank-fs: \tv%s \t build time: %s \t commit hash: %s \n", version, buildTime, gitHash)
 }
