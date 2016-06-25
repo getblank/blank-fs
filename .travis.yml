@@ -7,7 +7,7 @@ install:
   - go get github.com/Sirupsen/logrus
   - go get github.com/getblank/wango
   - go get github.com/spf13/cobra
-  - go get github.com/ivahaev/vbot
+  - go get github.com/ivahaev/verlog
 script: go get -t -v ./...
 after_success:
   - go build -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
