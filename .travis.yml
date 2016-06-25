@@ -7,6 +7,7 @@ install:
   - go get github.com/Sirupsen/logrus
   - go get github.com/getblank/wango
   - go get github.com/spf13/cobra
+  - go get github.com/ivahaev/vbot
 script: go get -t -v ./...
 after_success:
   - go build -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
@@ -16,3 +17,4 @@ after_success:
   - GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
   - curl --ftp-create-dirs --data-binary -k -T ./blank-fs -u $FTP_USER:$FTP_PASSWORD ftp://releases.getblank.net/releases/blank-fs/$(date +%Y-%m-%d_%H:%M)-osx/blank-fs
   - curl --ftp-create-dirs --data-binary -k -T ./blank-fs -u $FTP_USER:$FTP_PASSWORD ftp://releases.getblank.net/releases/blank-fs/osx/blank-fs
+  - curl -X POST http://168.63.48.109:9090/ -d $"`verlog`" --header "Authorization: Basic $VBOT_KEY" --header "Content-Type:text/plain;charset=UTF-8"
