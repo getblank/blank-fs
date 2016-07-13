@@ -4,6 +4,7 @@ os:
 go:
   - 1.6.2
 install:
+  - sudo apt-get install -qq upx
   - go get github.com/Sirupsen/logrus
   - go get github.com/getblank/wango
   - go get github.com/spf13/cobra
@@ -12,10 +13,12 @@ install:
 script: go get -t -v ./...
 after_success:
   - go build -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
+  - upx --best blank-fs
   - curl --ftp-create-dirs --data-binary -k -T ./blank-fs -u $FTP_USER:$FTP_PASSWORD ftp://releases.getblank.net/releases/blank-fs/$(date +%Y-%m-%d_%H:%M)-linux/blank-fs
   - curl --ftp-create-dirs --data-binary -k -T ./blank-fs -u $FTP_USER:$FTP_PASSWORD ftp://releases.getblank.net/releases/blank-fs/linux/blank-fs
 
   - GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
+  - upx --best blank-fs
   - curl --ftp-create-dirs --data-binary -k -T ./blank-fs -u $FTP_USER:$FTP_PASSWORD ftp://releases.getblank.net/releases/blank-fs/$(date +%Y-%m-%d_%H:%M)-osx/blank-fs
   - curl --ftp-create-dirs --data-binary -k -T ./blank-fs -u $FTP_USER:$FTP_PASSWORD ftp://releases.getblank.net/releases/blank-fs/osx/blank-fs
   - ./sender.sh
