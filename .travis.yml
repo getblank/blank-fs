@@ -26,12 +26,12 @@ after_success:
     fi
   - ./sender.sh
 
- deploy:
+deploy:
   provider: releases
   api_key: "$GITHUB_OAUTH_TOKEN"
   file:
-    - "blank-fs-linux-amd64"
-    - "blank-fs-darwin-amd64"
+    - blank-fs-linux-amd64
+    - blank-fs-darwin-amd64
   skip_cleanup: true
   on:
     tags: true
