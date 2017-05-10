@@ -6,7 +6,6 @@ go:
 install:
   - go get github.com/Sirupsen/logrus
   - go get github.com/getblank/wango
-  - go get github.com/spf13/cobra
   - go get github.com/ivahaev/verlog
   - chmod +x sender.sh
 script: go get -t -v ./...
