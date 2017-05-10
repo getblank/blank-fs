@@ -2,9 +2,8 @@ language: go
 os:
   - linux
 go:
-  - 1.7.3
+  - 1.8.1
 install:
-  - sudo apt-get install -qq upx
   - go get github.com/Sirupsen/logrus
   - go get github.com/getblank/wango
   - go get github.com/spf13/cobra
@@ -13,18 +12,8 @@ install:
 script: go get -t -v ./...
 after_success:
   - go build -o blank-fs-linux-amd64 -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
-  - upx --best blank-fs-linux-amd64
-  - curl --ftp-create-dirs --data-binary -k -T ./blank-fs-linux-amd64 -u $FTP_USER:$FTP_PASSWORD ftp://releases.getblank.net/releases/blank-fs/linux/blank-fs
-  - if [[ ${TRAVIS_TAG} ]]; then
-      curl --ftp-create-dirs --data-binary -k -T ./blank-fs-linux-amd64 -u $FTP_USER:$FTP_PASSWORD ftp://releases.getblank.net/releases/blank-fs/${TRAVIS_TAG}/blank-fs-linux-amd64;
-    fi
-
   - GOOS=darwin GOARCH=amd64 go build -o blank-fs-darwin-amd64 -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
-  - curl --ftp-create-dirs --data-binary -k -T ./blank-fs-darwin-amd64 -u $FTP_USER:$FTP_PASSWORD ftp://releases.getblank.net/releases/blank-fs/osx/blank-fs
-  - if [[ ${TRAVIS_TAG} ]]; then
-      curl --ftp-create-dirs --data-binary -k -T ./blank-fs-darwin-amd64 -u $FTP_USER:$FTP_PASSWORD ftp://releases.getblank.net/releases/blank-fs/${TRAVIS_TAG}/blank-fs-darwin-amd64;
-    fi
-  - ./sender.sh
+  - GOOS=windows GOARCH=amd64 go build -o blank-fs-win32-amd64.exe -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
 
 deploy:
   provider: releases
@@ -32,6 +21,7 @@ deploy:
   file:
     - blank-fs-linux-amd64
     - blank-fs-darwin-amd64
+    - blank-fs-win32-amd64.exe
   skip_cleanup: true
   on:
     tags: true
