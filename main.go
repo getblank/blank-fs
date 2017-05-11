@@ -1,13 +1,12 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
 	log "github.com/Sirupsen/logrus"
 	"gopkg.in/gemnasium/logrus-graylog-hook.v2"
-
-	"flag"
 
 	"github.com/getblank/blank-fs/intranet"
 )
