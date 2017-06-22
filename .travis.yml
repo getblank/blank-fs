@@ -4,11 +4,7 @@ os:
 go:
   - 1.8.1
 install:
-  - go get github.com/Sirupsen/logrus
-  - go get github.com/getblank/wango
-  - go get github.com/ivahaev/verlog
   - chmod +x sender.sh
-script: go get -t -v ./...
 after_success:
   - go build -o blank-fs-linux-amd64 -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
   - GOOS=darwin GOARCH=amd64 go build -o blank-fs-darwin-amd64 -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
