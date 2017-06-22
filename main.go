@@ -46,6 +46,17 @@ func main() {
 		return
 	}
 
+	if sr := os.Getenv("BLANK_SERVICE_REGISTRY_URI"); len(sr) > 0 {
+		srAddress = &sr
+	}
+	if srPort := os.Getenv("BLANK_SERVICE_REGISTRY_PORT"); len(srPort) > 0 {
+		addr := "ws://localhost:" + srPort
+		srAddress = &addr
+	}
+	if fsPort := os.Getenv("BLANK_FILE_STORE_PORT"); len(fsPort) > 0 {
+		port = &fsPort
+	}
+
 	log.Info("blank-fs started")
 	intranet.Init(*srAddress, *port)
 }
