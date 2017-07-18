@@ -102,6 +102,10 @@ func TestFileStore(t *testing.T) {
 			g.Assert(err).Equal(nil)
 			g.Assert(len(res)).Equal(len(files))
 
+			res, err = List(store, 2, 0)
+			g.Assert(err).Equal(nil)
+			g.Assert(len(res)).Equal(4)
+
 			res, err = List(store, 2, 3)
 			g.Assert(err).Equal(nil)
 			g.Assert(len(res)).Equal(3)
