@@ -2,7 +2,9 @@ package intranet
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
@@ -21,6 +23,7 @@ var (
 	fileNotFound               = []byte("file not found")
 	invalidParams              = []byte("invalid params")
 	requestMethodsRestrictions = []byte("Only GET and POST request is allowed")
+	invalidTakeSkipParams      = []byte("invalid take or skip param")
 	fileDeleted                = []byte("deleted")
 	noFileName                 = []byte("no file-name header")
 )
@@ -37,29 +40,86 @@ func startHTTPServer() {
 }
 
 func httpHandler(rw http.ResponseWriter, request *http.Request) {
-	uri := strings.Trim(request.RequestURI, "/")
+	uri := strings.Trim(request.URL.Path, "/")
 	splitted := strings.Split(uri, "/")
-	if len(splitted) != 2 {
-		rw.WriteHeader(http.StatusBadRequest)
-		rw.Write(invalidParams)
-		return
+	var storeName, fileID string
+	if len(splitted) >= 2 {
+		storeName = splitted[0]
+		fileID = splitted[1]
+	} else {
+		if len(splitted) == 0 {
+			rw.WriteHeader(http.StatusBadRequest)
+			rw.Write(invalidParams)
+			return
+		}
+
+		storeName = splitted[0]
 	}
+
 	switch request.Method {
 	case http.MethodPost:
-		postHandler(splitted[0], splitted[1], rw, request)
+		postHandler(storeName, fileID, rw, request)
 	case http.MethodGet:
-		getHandler(splitted[0], splitted[1], rw)
+		if len(fileID) == 0 {
+			listHandler(storeName, rw, request)
+			return
+		}
+		getHandler(storeName, fileID, rw)
 	case http.MethodDelete:
-		deleteHandler(splitted[0], splitted[1], rw)
+		deleteHandler(storeName, fileID, rw)
 	default:
 		rw.WriteHeader(http.StatusBadRequest)
 		rw.Write(requestMethodsRestrictions)
 	}
 }
 
-func getHandler(_store, fileID string, rw http.ResponseWriter) {
-	log.Debugf("New GET request. Store: %s, fileID: %s", _store, fileID)
-	fileName, content, err := store.Get(_store, fileID)
+func listHandler(storeName string, rw http.ResponseWriter, request *http.Request) {
+	log.Debugf("New LIST request. Store: %s", storeName)
+	var skip, take int
+	query := request.URL.Query()
+	var err error
+	if t := query.Get("skip"); len(t) > 0 {
+		skip, err = strconv.Atoi(t)
+		if err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			rw.Write(invalidTakeSkipParams)
+			return
+		}
+		log.Debugf("LIST request for store: %s skip param: %d", storeName, skip)
+	}
+
+	if t := query.Get("take"); len(t) > 0 {
+		take, err = strconv.Atoi(t)
+		if err != nil {
+			rw.WriteHeader(http.StatusBadRequest)
+			rw.Write(invalidTakeSkipParams)
+			return
+		}
+		log.Debugf("LIST request for store: %s take param: %d", storeName, take)
+	}
+
+	list, err := store.List(storeName, skip, take)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write([]byte(err.Error()))
+		return
+	}
+
+	encoded, err := json.Marshal(list)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write([]byte(err.Error()))
+		return
+	}
+
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(http.StatusOK)
+	rw.Write(encoded)
+}
+
+func getHandler(storeName, fileID string, rw http.ResponseWriter) {
+	log.Debugf("New GET request. Store: %s, fileID: %s", storeName, fileID)
+	fileName, content, err := store.Get(storeName, fileID)
 	if err != nil {
 		if err == store.ErrNotFound {
 			rw.WriteHeader(http.StatusNotFound)
@@ -72,13 +132,13 @@ func getHandler(_store, fileID string, rw http.ResponseWriter) {
 	}
 	rw.Header().Set("file-name", fileName)
 	rw.WriteHeader(http.StatusOK)
-	log.Debugf("Send %s for GET request. Store: %s, fileID: %s", fileName, _store, fileID)
+	log.Debugf("Send %s for GET request. Store: %s, fileID: %s", fileName, storeName, fileID)
 	rw.Write(content)
 }
 
-func postHandler(_store, fileID string, rw http.ResponseWriter, request *http.Request) {
-	log.Debugf("New POST request. Store: %s, fileID: %s", _store, fileID)
-	if store.Exists(_store, fileID) {
+func postHandler(storeName, fileID string, rw http.ResponseWriter, request *http.Request) {
+	log.Debugf("New POST request. Store: %s, fileID: %s", storeName, fileID)
+	if store.Exists(storeName, fileID) {
 		rw.WriteHeader(http.StatusBadRequest)
 		rw.Write(fileExists)
 		return
@@ -101,7 +161,7 @@ func postHandler(_store, fileID string, rw http.ResponseWriter, request *http.Re
 		log.WithField("filename", fileName).Warn("Uploaded file is empty")
 	}
 
-	err = store.File(_store, fileID, fileName, buf.Bytes())
+	err = store.File(storeName, fileID, fileName, buf.Bytes())
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(err.Error()))
@@ -110,9 +170,9 @@ func postHandler(_store, fileID string, rw http.ResponseWriter, request *http.Re
 	rw.Write(fileStored)
 }
 
-func deleteHandler(_store, fileID string, rw http.ResponseWriter) {
-	log.Debugf("New DELETE request. Store: %s, fileID: %s", _store, fileID)
-	err := store.Del(_store, fileID)
+func deleteHandler(storeName, fileID string, rw http.ResponseWriter) {
+	log.Debugf("New DELETE request. Store: %s, fileID: %s", storeName, fileID)
+	err := store.Del(storeName, fileID)
 	if err != nil {
 		if err == store.ErrNotFound {
 			rw.WriteHeader(http.StatusNotFound)
