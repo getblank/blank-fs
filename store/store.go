@@ -7,28 +7,33 @@ import (
 	"sync"
 	"time"
 
+	"io"
+
 	"github.com/spf13/afero"
 )
 
 var (
-	appFs   afero.Fs
-	rootDir = "files"
-	// ErrAccessDenied uses when access denied
+	appFs         afero.Fs
+	rootDir       = "files"
+	tmpFiles      = map[string]*Item{}
+	tmpFilesMutex = &sync.Mutex{}
+	tmpFileTTL    = time.Hour * 2
+)
+
+// Errors
+var (
 	ErrAccessDenied = errors.New("Access denied!")
 	ErrServerError  = errors.New("Server error")
 	ErrFileExists   = errors.New("File exists")
 	ErrNotFound     = errors.New("File not found")
-	tmpFiles        = map[string]*tmpFile{}
-	tmpFilesMutex   = &sync.Mutex{}
-	tmpFileTTL      = time.Hour * 2
 )
 
-type tmpFile struct {
+type Item struct {
 	ID         string     `json:"_id"`
 	Name       string     `json:"name"`
 	Store      string     `json:"store"`
-	Size       int        `json:"size"`
-	UploadedAt *time.Time `json:"uploadedAt"`
+	Size       int        `json:"size,omitempty"`
+	UploadedAt *time.Time `json:"uploadedAt,omitempty"`
 }
 
 func init() {
@@ -92,6 +97,47 @@ func Get(store, id string) (string, []byte, error) {
 		err = ErrNotFound
 	}
 	return filepath.Base(path), content, err
+}
+
+func List(store string, skip, take int) ([]*Item, error) {
+	fileDir := rootDir + "/" + store + "/"
+	res := []*Item{}
+	dirExists, err := afero.DirExists(appFs, fileDir)
+	if err != nil {
+		return res, err
+	}
+	if !dirExists {
+		return res, nil
+	}
+
+	cur := 0
+	err = afero.Walk(appFs, fileDir, func(path string, info os.FileInfo, err error) error {
+		if err == nil && !info.IsDir() {
+			cur++
+			if skip >= cur {
+				return nil
+			}
+
+			if take > 0 && len(res) == take {
+				return io.EOF
+			}
+			name := info.Name()
+			item := Item{
+				ID:    filepath.Base(filepath.Dir(name)),
+				Name:  filepath.Base(name),
+				Store: store,
+				Size:  int(info.Size()),
+			}
+			res = append(res, &item)
+		}
+		return nil
+	})
+
+	if err == io.EOF {
+		err = nil
+	}
+
+	return res, err
 }
 
 func saveFile(path string, content []byte) error {
