@@ -121,10 +121,10 @@ func List(store string, skip, take int) ([]*Item, error) {
 			if take > 0 && len(res) == take {
 				return io.EOF
 			}
-			name := info.Name()
+
 			item := Item{
-				ID:    filepath.Base(filepath.Dir(name)),
-				Name:  filepath.Base(name),
+				ID:    filepath.Base(filepath.Dir(path)),
+				Name:  info.Name(),
 				Store: store,
 				Size:  int(info.Size()),
 			}

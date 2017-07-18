@@ -111,19 +111,19 @@ func TestFileStore(t *testing.T) {
 			g.Assert(len(res)).Equal(3)
 			expected := []Item{
 				{
-					ID:    ".",
+					ID:    "e669166e-18d3-46ae-9b35-617ea6d5a27a",
 					Name:  "1.zip",
 					Store: "filledListStore",
 					Size:  0,
 				},
 				{
-					ID:    ".",
+					ID:    "e669166e-18d3-46ae-9b35-617ea6d5a27b",
 					Name:  "5.zip",
 					Store: "filledListStore",
 					Size:  0,
 				},
 				{
-					ID:    ".",
+					ID:    "e769166e-18d3-46ae-9b35-617ea6d5a27c",
 					Name:  "3.zip",
 					Store: "filledListStore",
 					Size:  0,
