@@ -99,6 +99,7 @@ func Get(store, id string) (string, []byte, error) {
 	return filepath.Base(path), content, err
 }
 
+// List returs list of files in store. Result can by limited by skip and take params
 func List(store string, skip, take int) ([]*Item, error) {
 	fileDir := rootDir + "/" + store + "/"
 	res := []*Item{}
