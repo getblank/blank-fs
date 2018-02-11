@@ -2,7 +2,7 @@ language: go
 os:
   - linux
 go:
-  - 1.8.1
+  - 1.9
 install:
   - chmod +x sender.sh
 after_success:

@@ -3,7 +3,9 @@ package intranet
 import (
 	"bytes"
 	"encoding/json"
+	"mime"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -85,6 +87,7 @@ func listHandler(storeName string, rw http.ResponseWriter, request *http.Request
 			rw.Write(invalidTakeSkipParams)
 			return
 		}
+
 		log.Debugf("LIST request for store: %s skip param: %d", storeName, skip)
 	}
 
@@ -95,6 +98,7 @@ func listHandler(storeName string, rw http.ResponseWriter, request *http.Request
 			rw.Write(invalidTakeSkipParams)
 			return
 		}
+
 		log.Debugf("LIST request for store: %s take param: %d", storeName, take)
 	}
 
@@ -124,13 +128,19 @@ func getHandler(storeName, fileID string, rw http.ResponseWriter) {
 		if err == store.ErrNotFound {
 			rw.WriteHeader(http.StatusNotFound)
 			rw.Write(fileNotFound)
-		} else {
-			rw.WriteHeader(http.StatusBadRequest)
-			rw.Write([]byte(err.Error()))
+
+			return
 		}
+
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write([]byte(err.Error()))
+
 		return
 	}
+
 	rw.Header().Set("file-name", fileName)
+	rw.Header().Set("Content-Type", detectContentType(fileName, content))
+	rw.Header().Set("Content-Length", strconv.Itoa(len(content)))
 	rw.WriteHeader(http.StatusOK)
 	log.Debugf("Send %s for GET request. Store: %s, fileID: %s", fileName, storeName, fileID)
 	rw.Write(content)
@@ -143,6 +153,7 @@ func postHandler(storeName, fileID string, rw http.ResponseWriter, request *http
 		rw.Write(fileExists)
 		return
 	}
+
 	fileName := request.Header.Get("file-name")
 	if fileName == "" {
 		rw.WriteHeader(http.StatusBadRequest)
@@ -157,6 +168,7 @@ func postHandler(storeName, fileID string, rw http.ResponseWriter, request *http
 		rw.Write([]byte(err.Error()))
 		return
 	}
+
 	if n == 0 {
 		log.WithField("filename", fileName).Warn("Uploaded file is empty")
 	}
@@ -167,6 +179,7 @@ func postHandler(storeName, fileID string, rw http.ResponseWriter, request *http
 		rw.Write([]byte(err.Error()))
 		return
 	}
+
 	rw.Write(fileStored)
 }
 
@@ -179,9 +192,20 @@ func deleteHandler(storeName, fileID string, rw http.ResponseWriter) {
 			rw.Write(fileNotFound)
 			return
 		}
+
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(err.Error()))
 		return
 	}
+
 	rw.Write(fileDeleted)
+}
+
+func detectContentType(fileName string, content []byte) string {
+	ctype := mime.TypeByExtension(filepath.Ext(fileName))
+	if ctype == "" {
+		ctype = http.DetectContentType(content)
+	}
+
+	return ctype
 }
