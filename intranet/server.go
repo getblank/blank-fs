@@ -140,7 +140,7 @@ func getHandler(storeName, fileID string, rw http.ResponseWriter) {
 	}
 
 	rw.Header().Set("File-Name", fileName) // TODO: remove this header after updating router and worker
-	rw.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
+	rw.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
 	rw.Header().Set("Content-Type", detectContentType(fileName, content))
 	rw.Header().Set("Content-Length", strconv.Itoa(len(content)))
 	rw.WriteHeader(http.StatusOK)
