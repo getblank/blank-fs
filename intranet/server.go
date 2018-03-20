@@ -3,6 +3,7 @@ package intranet
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"mime"
 	"net/http"
 	"path/filepath"
@@ -138,7 +139,8 @@ func getHandler(storeName, fileID string, rw http.ResponseWriter) {
 		return
 	}
 
-	rw.Header().Set("file-name", fileName)
+	rw.Header().Set("File-Name", fileName) // TODO: remove this header after updating router and worker
+	rw.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
 	rw.Header().Set("Content-Type", detectContentType(fileName, content))
 	rw.Header().Set("Content-Length", strconv.Itoa(len(content)))
 	rw.WriteHeader(http.StatusOK)
@@ -154,8 +156,10 @@ func postHandler(storeName, fileID string, rw http.ResponseWriter, request *http
 		return
 	}
 
-	fileName := request.Header.Get("file-name")
-	if fileName == "" {
+	var fileName string
+	if _, params, err := mime.ParseMediaType(request.Header.Get("Content-Disposition")); err == nil && len(params["filename"]) > 0 {
+		fileName = params["filename"]
+	} else if fileName = request.Header.Get("File-Name"); len(fileName) == 0 {
 		rw.WriteHeader(http.StatusBadRequest)
 		rw.Write(noFileName)
 		return
