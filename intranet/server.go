@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -162,6 +163,14 @@ func postHandler(storeName, fileID string, rw http.ResponseWriter, request *http
 	} else if fileName = request.Header.Get("File-Name"); len(fileName) == 0 {
 		rw.WriteHeader(http.StatusBadRequest)
 		rw.Write(noFileName)
+		return
+	}
+
+	var err error
+	fileName, err = url.QueryUnescape(fileName)
+	if err != nil {
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write([]byte(err.Error()))
 		return
 	}
 
