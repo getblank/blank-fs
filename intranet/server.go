@@ -32,7 +32,7 @@ var (
 	noFileName                 = []byte("no file-name header")
 )
 
-func startHTTPServer() {
+func Init(httpPort string) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", httpHandler)
 

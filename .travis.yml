@@ -5,6 +5,7 @@ go:
   - "1.17"
 install:
   - chmod +x sender.sh
+  - go mod vendor
 after_success:
   - go build -o blank-fs-linux-amd64 -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
   - GOOS=darwin GOARCH=amd64 go build -o blank-fs-darwin-amd64 -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"

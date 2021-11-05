@@ -22,7 +22,6 @@ func main() {
 	}
 	log.SetFormatter(&log.JSONFormatter{})
 
-	srAddress := flag.String("s", "ws://localhost:1234", "Service registry uri")
 	port := flag.String("p", "8082", "TCP port to listen")
 	verFlag := flag.Bool("v", false, "Prints version and exit")
 	flag.Parse()
@@ -32,19 +31,12 @@ func main() {
 		return
 	}
 
-	if sr := os.Getenv("BLANK_SERVICE_REGISTRY_URI"); len(sr) > 0 {
-		srAddress = &sr
-	}
-	if srPort := os.Getenv("BLANK_SERVICE_REGISTRY_PORT"); len(srPort) > 0 {
-		addr := "ws://localhost:" + srPort
-		srAddress = &addr
-	}
 	if fsPort := os.Getenv("BLANK_FILE_STORE_PORT"); len(fsPort) > 0 {
 		port = &fsPort
 	}
 
 	log.Info("blank-fs started")
-	intranet.Init(*srAddress, *port)
+	intranet.Init(*port)
 }
 
 func printVersion() {
