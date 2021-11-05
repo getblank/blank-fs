@@ -24,7 +24,7 @@ _testmain.go
 *.prof
 
 # vendor
-./vendor
+vendor/*
 
 # binary file
 blank-fs
