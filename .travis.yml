@@ -9,6 +9,7 @@ install:
 after_success:
   - go build -o blank-fs-linux-amd64 -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
   - GOOS=darwin GOARCH=amd64 go build -o blank-fs-darwin-amd64 -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
+  - GOOS=darwin GOARCH=arm64 go build -o blank-fs-darwin-arm64 -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
   - GOOS=windows GOARCH=amd64 go build -o blank-fs-win32-amd64.exe -ldflags "-X main.buildTime=`date +%Y-%m-%d:%H:%M:%S` -X main.gitHash=`git rev-parse --short HEAD`"
 
 deploy:
@@ -17,6 +18,7 @@ deploy:
   file:
     - blank-fs-linux-amd64
     - blank-fs-darwin-amd64
+    - blank-fs-darwin-arm64
     - blank-fs-win32-amd64.exe
   skip_cleanup: true
   on:
